@@ -291,6 +291,26 @@
     .ggrid{grid-template-columns:repeat(5,1fr);gap:6px}
   }
 
+  /* ---------- area groups ---------- */
+  .agroup{
+    background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px;
+  }
+  .agroup h3{
+    margin:0;font-size:16.5px;display:flex;align-items:center;gap:10px;letter-spacing:.02em;
+  }
+  .agroup h3 span{
+    font-size:11.5px;color:var(--muted);font-weight:800;background:var(--ice);
+    padding:3px 9px;border-radius:999px;
+  }
+  .achips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .achip{
+    border:1px solid var(--line);background:#fbfdff;border-radius:999px;padding:7px 13px;
+    font-size:13px;font-family:inherit;color:var(--ink);cursor:pointer;transition:.18s;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .achip:hover{border-color:var(--navy2);background:#fff;transform:translateY(-1px);box-shadow:0 6px 14px rgba(16,42,67,.08)}
+  .achip i{font-style:normal;font-size:14px}
+
   /* ---------- footer ---------- */
   .netnotice{
     position:fixed;left:50%;bottom:22px;transform:translate(-50%,24px);z-index:120;
@@ -322,6 +342,7 @@
     <div class="brand">北海道 <span>2027</span></div>
     <nav class="nav-links">
       <a href="#explore">景點活動</a>
+      <a href="#areas">按地區</a>
       <a href="#plan">七日行程</a>
       <a href="#budget">預算</a>
     </nav>
@@ -364,6 +385,17 @@
       <button class="filter" data-filter="food">餐廳 <b>0</b></button>
     </div>
     <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="areas" class="wrap">
+    <div class="sec-head">
+      <div>
+        <p class="sec-tag">BY AREA</p>
+        <h2>按地區分組：邊啲地方喺附近</h2>
+        <p>同一區嘅景點、餐廳、酒店擺埋一齊，方便一日行一區。撳任何一個名即刻睇詳情。</p>
+      </div>
+    </div>
+    <div id="areaGroups"></div>
   </section>
 
   <section id="plan" class="wrap">
@@ -1520,9 +1552,67 @@ bmodal.addEventListener("click", (e) => { if(e.target === bmodal) closeBudget();
   }
 });
 
+
+/* ---------------- area grouping ---------------- */
+const AREA_ORDER = [
+  "大通・札幌站", "薄野・狸小路", "圓山・藻岩山", "中島公園・南區",
+  "東區・北區", "西區・手稻", "厚別・北廣島", "定山溪",
+  "千歲・支笏湖・機場", "小樽・余市", "旭川", "層雲峽・旭岳",
+  "富良野・美瑛", "二世古・ニセコ", "登別・洞爺・白老", "道東（網走・知床・阿寒）", "札幌市內其他"
+];
+
+function areaOf(d){
+  const loc = ((d.info && d.info[0] ? d.info[0][1] : "") + " " + d.title);
+  const rules = [
+    ["道東（網走・知床・阿寒）", /網走|知床|斜里|阿寒|釧路/],
+    ["小樽・余市", /小樽|余市/],
+    ["旭川", /旭川/],
+    ["層雲峽・旭岳", /上川町|東川町|層雲峽|旭岳|大雪山/],
+    ["富良野・美瑛", /富良野|美瑛/],
+    ["二世古・ニセコ", /二世古|俱知安|ニセコ/],
+    ["登別・洞爺・白老", /登別|洞爺|白老|壮瞥|虻田/],
+    ["千歲・支笏湖・機場", /千歲|支笏湖|新千歲/],
+    ["定山溪", /定山溪|定山渓|豐平峽|豊平峡/],
+    ["厚別・北廣島", /厚別|新札幌|江別|野幌|北廣島/],
+    ["西區・手稻", /手稻|西區|宮之澤|北 11 條西 2|二十四軒|琴似/],
+    ["東區・北區", /東區|北區|莫埃來|モエレ/],
+    ["圓山・藻岩山", /圓山|宮丘|宮之森|伏見|藻岩/],
+    ["中島公園・南區", /中島|豐平|平岸|美園|南區/],
+    ["薄野・狸小路", /薄野|すすきの|南 [0-9]|二條市場/],
+    ["大通・札幌站", /大通|札幌站|北 [0-9]/]
+  ];
+  for(const [name, re] of rules){ if(re.test(loc)) return name; }
+  return "札幌市內其他";
+}
+
+function renderAreas(){
+  const box = document.getElementById("areaGroups");
+  if(!box) return;
+  const map = {};
+  DATA.forEach((d, i) => {
+    const a = areaOf(d);
+    if(!map[a]) map[a] = [];
+    map[a].push({d: d, i: i});
+  });
+  box.innerHTML = AREA_ORDER.filter(a => map[a]).map(a => {
+    const list = map[a].sort((x, y) => x.i - y.i);
+    return `<div class="agroup">
+      <h3>${a}<span>${list.length} 個</span></h3>
+      <div class="achips">${list.map(x =>
+        `<button class="achip" type="button" data-idx="${x.i}"><i>${x.d.emoji}</i>${x.d.title}</button>`
+      ).join("")}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".achip").forEach(b => {
+    b.addEventListener("click", () => openModal(+b.dataset.idx, b));
+  });
+}
+renderAreas();
+
 </script>
 </body>
 </html>
+
 
 
 
